@@ -4,6 +4,7 @@ import (
 	"log"
 	"log-agent-go/etcd"
 	"log-agent-go/utils"
+	"log-agent-go/config"
 	"strconv"
 	"time"
 
@@ -24,22 +25,25 @@ type LogData struct {
 var LogChan chan *LogData
 
 // Init 初始化 kafka 连接
-func Init(address []string, chanMaxSize int) (err error) {
-	config := sarama.NewConfig()
-	config.Producer.RequiredAcks = sarama.WaitForAll          // 发送完数据需要leader和follow都确认
-	config.Producer.Partitioner = sarama.NewRandomPartitioner // 新选出一个partition
-	config.Producer.Return.Successes = true                   // 成功交付的消息将在success channel返回
+func init()  {
+	conf := sarama.NewConfig()
+	conf.Producer.RequiredAcks = sarama.WaitForAll          // 发送完数据需要leader和follow都确认
+	conf.Producer.Partitioner = sarama.NewRandomPartitioner // 新选出一个partition
+	conf.Producer.Return.Successes = true                   // 成功交付的消息将在success channel返回
 
 	// 连接kafka
-	client, err = sarama.NewSyncProducer(address, config)
+	var err error
+	client, err = sarama.NewSyncProducer(config.Conf.KafkaConf.Address, conf)
 	if err != nil {
-		return
+		log.Fatalf("kafka 初始化失败，err: %v\n", err)
 	}
 	//初始化 LogChan
-	LogChan = make(chan *LogData, chanMaxSize)
-	//
+	LogChan = make(chan *LogData, config.Conf.ChanMaxSize)
+
 	go sendToKafka()
-	return
+
+	log.Println("kafka 初始化成功")
+
 }
 
 // SendToChan 发送数据到通道中

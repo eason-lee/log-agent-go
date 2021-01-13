@@ -2,6 +2,7 @@ package taillog
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"log-agent-go/etcd"
@@ -9,6 +10,7 @@ import (
 	"log-agent-go/utils"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/hpcloud/tail"
@@ -61,7 +63,7 @@ func NewTailTask(filename, topic string) (task TailTask, err error) {
 	if offset == int64(0) {
 		whence = os.SEEK_END
 	}
-	log.Println("new task--", offset, whence, topic)
+
 	TailObj, err := tail.TailFile(
 		filename,
 		tail.Config{
@@ -111,6 +113,20 @@ func (t *TailTask) run() {
 }
 
 func (m *TailTaskManager) listenUpdateConf() {
+
+	//监听 etcd key 的改动
+	fc := func(data []byte) (err error) {
+		var updateConf []*etcd.LogEntryConf
+		err = json.Unmarshal(data, &updateConf)
+		if err != nil {
+			log.Printf("WatchConf Unmarshal err: %v", err)
+			return
+		}
+		TaskManager.UpdateConfChan <- updateConf
+		return
+	}
+	go etcd.WatchConf(utils.GetTaillogConfKey(), fc)
+
 	for {
 		select {
 		case up := <-m.UpdateConfChan:
@@ -153,8 +169,13 @@ func (m *TailTaskManager) listenUpdateConf() {
 }
 
 // Run 开启日志收集器
-func Run(configs []*etcd.LogEntryConf) {
-	for _, v := range configs {
+func Run() {
+
+	logConfgis, err := etcd.GetLogConf(utils.GetTaillogConfKey())
+	if err != nil {
+		log.Fatalf("获取 etcd 配置失败，%v\n", err)
+	}
+	for _, v := range logConfgis {
 		log.Printf("log configs file path: %v topic %v\n", v.FilePath, v.Topic)
 		task, err := NewTailTask(v.FilePath, v.Topic)
 		if err != nil {
@@ -166,5 +187,7 @@ func Run(configs []*etcd.LogEntryConf) {
 
 	}
 	go TaskManager.listenUpdateConf()
-
+	var wg sync.WaitGroup
+	wg.Add(1)
+	wg.Wait()
 }
