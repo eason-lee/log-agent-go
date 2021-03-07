@@ -1,0 +1,19 @@
+server_name: panda
+
+kafka:
+  brokers: 
+    - 127.0.0.1:9092
+  batch_size: 100
+  required_acks: -1
+
+etcd:
+  address: 
+    - 127.0.0.1:2379
+  key: panda-server-conf
+  vals:
+    - filepath: /Users/lisen/go/src/log-agent-go/test.log
+      topic: log
+    - filepath: /Users/lisen/go/src/log-agent-go/go_run.log
+      topic: go_run
+  enable_watch: true
+  mark_offset_period: 2
