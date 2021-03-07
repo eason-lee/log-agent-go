@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	conf := config.GetConf("config/server.yaml")
+	conf := config.GetConf("config/config.yaml")
 
 	group := service.NewServiceGroup()
 	defer group.Stop()
