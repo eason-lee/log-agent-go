@@ -1,48 +1,61 @@
 package config
 
 import (
-	"io/ioutil"
 	"log"
 
-	"gopkg.in/yaml.v2"
+	"github.com/spf13/viper"
 )
 
-// ServerConf 服务配置
-type ServerConf struct {
-	Name        string `yaml:"server_name"`
-	KafkaConf   `yaml:"kafka"`
-	EtcdConf    `yaml:"etcd"`
-	TaillogConf `yaml:"taillog"`
-}
+type (
+	// ServerConf 服务配置
+	ServerConf struct {
+		Name      string `mapstructure:"server_name"`
+		KafkaConf `mapstructure:"kafka"`
+		EtcdConf  `mapstructure:"etcd"`
+	}
 
-// KafkaConf ...
-type KafkaConf struct {
-	Address     []string `yaml:"address,flow"`
-	ChanMaxSize int      `yaml:"chan_max_size"`
-}
+	// KafkaConf ...
+	KafkaConf struct {
+		Brokers      []string `mapstructure:"brokers"`
+		BatchSize    int      `mapstructure:"batch_size,default=100"`
+		RequiredAcks int      `mapstructure:"required_acks"`
+	}
 
-// EtcdConf ...
-type EtcdConf struct {
-	Address []string `yaml:"address,flow"`
-}
+	// Val ...
+	Val struct {
+		Filepath string `mapstructure:"filepath"`
+		Topic    string `mapstructure:"topic"`
+	}
 
-// TaillogConf ...
-type TaillogConf struct {
-	Key string `yaml:"key"`
-}
+	// EtcdConf ...
+	EtcdConf struct {
+		Address          []string `mapstructure:"address"`
+		Key              string   `mapstructure:"key"`
+		Vals             []Val    `mapstructure:"vals"`
+		EnableWatch      bool     `mapstructure:"enable_watch"`
+		MarkOffsetPeriod int      `mapstructure:"mark_offset_period"`
+	}
+)
 
-// Conf 配置
-var Conf = new(ServerConf)
+// GetConf ...
+func GetConf(configName string) *ServerConf {
+	conf := viper.New()
+	conf.SetConfigFile(configName)
 
-// Init 初始化配置
-func init() {
-	yamlFile, err := ioutil.ReadFile("config/server.yaml")
-	if err != nil {
+	// 设置默认值
+	conf.SetDefault("kafka.batch_size", 100)
+	conf.SetDefault("kafka.required_acks", -1)
+
+	err := conf.ReadInConfig() // 查找并读取配置文件
+	if err != nil {            // 处理读取配置文件的错误
 		log.Fatalf("yamlFile Get err #%v ", err)
 	}
-	err = yaml.Unmarshal(yamlFile, Conf)
-	if err != nil {
-		log.Fatalf("yaml conf Unmarshal: %v", err)
+
+	var c ServerConf
+	err = conf.Unmarshal(&c)
+	if err != nil { // 处理读取配置文件的错误
+		log.Fatalf("Unmarshal yamlFile Get err #%v ", err)
 	}
 
+	return &c
 }

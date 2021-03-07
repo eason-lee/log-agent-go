@@ -4,7 +4,7 @@ import (
 	"log"
 	"sync"
 
-	"go-transfer/utils"
+	"log-agent-go/utils"
 )
 
 type (
@@ -24,6 +24,7 @@ type (
 	ServiceGroup struct {
 		services []Service
 		stopOnce func()
+		routineGroup *RoutineGroup
 	}
 )
 
@@ -34,6 +35,8 @@ func NewServiceGroup() *ServiceGroup {
 	sg.stopOnce = func() {
 		once.Do(sg.doStop)
 	}
+	sg.routineGroup = NewRoutineGroup()
+
 	return sg
 }
 
@@ -50,21 +53,28 @@ func (sg *ServiceGroup) Start() {
 	sg.doStart()
 }
 
+
+func (sg *ServiceGroup) DynamicAddAndStart(service Service)  {
+	sg.services = append(sg.services, service)
+	sg.routineGroup.RunSafe(func() {
+		service.Start()
+	})
+
+}
+
 func (sg *ServiceGroup) Stop() {
 	sg.stopOnce()
 }
 
 func (sg *ServiceGroup) doStart() {
-	routineGroup := NewRoutineGroup()
-
 	for i := range sg.services {
 		service := sg.services[i]
-		routineGroup.RunSafe(func() {
+		sg.routineGroup.RunSafe(func() {
 			service.Start()
 		})
 	}
 
-	routineGroup.Wait()
+	sg.routineGroup.Wait()
 }
 
 func (sg *ServiceGroup) doStop() {

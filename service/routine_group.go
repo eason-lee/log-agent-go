@@ -17,7 +17,6 @@ func NewRoutineGroup() *RoutineGroup {
 	return new(RoutineGroup)
 }
 
-
 func (g *RoutineGroup) Run(fn func()) {
 	g.waitGroup.Add(1)
 
@@ -28,7 +27,7 @@ func (g *RoutineGroup) Run(fn func()) {
 }
 
 func RunSafe(fn func()) {
-	defer func(){
+	defer func() {
 		if p := recover(); p != nil {
 			log.Println(p)
 		}
@@ -36,7 +35,6 @@ func RunSafe(fn func()) {
 
 	fn()
 }
-
 
 // Don't reference the variables from outside,
 // because outside variables can be changed by other goroutines
