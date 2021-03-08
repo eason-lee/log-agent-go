@@ -6,7 +6,7 @@
 - 记录已发送的日志 offset 到 etcd ，程序意外退出时保证消息不丢失
 - 程序优雅的退出
 
-
+![alt](doc/log-agent.jpg)
 ## 配置详细说明
 
 ### kafka
