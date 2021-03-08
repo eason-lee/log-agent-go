@@ -69,7 +69,7 @@ func NewTailTask(filepath, topic string, writer *writer.Writer, conf *config.Ser
 		TailObj:          TailObj,
 		etcdClient:       etcdClient,
 		consumer:         writer,
-		channel:          make(chan *writeMsg, 100),
+		channel:          make(chan *writeMsg),
 		producerRoutines: service.NewRoutineGroup(),
 		consumerRoutines: service.NewRoutineGroup(),
 		ctx:              ctx,

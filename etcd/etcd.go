@@ -11,17 +11,18 @@ import (
 	"go.etcd.io/etcd/clientv3"
 )
 
+// EtcdClient ...
 type EtcdClient struct {
 	client *clientv3.Client
 }
 
 // LogEntryConf 日志收集配置
 type LogEntryConf struct {
-	Filepath string `yaml:"filepath"`
-	Topic    string `yaml:"topic"`
+	Filepath string `json:"filepath"`
+	Topic    string `json:"topic"`
 }
 
-// Init 初始化 etcd
+// NewClient etcdClient
 func NewClient(conf *config.EtcdConf) *EtcdClient {
 	client, err := clientv3.New(clientv3.Config{
 		Endpoints:   conf.Address,

@@ -17,7 +17,6 @@ type Writer struct {
 
 // NewWriter ...
 func NewWriter(conf *config.KafkaConf) *Writer {
-	log.Println("batchsize", conf.BatchSize)
 	client := kafka.NewWriter(kafka.WriterConfig{
 		Brokers:      conf.Brokers,
 		Balancer:     &kafka.LeastBytes{},
