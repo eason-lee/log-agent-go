@@ -10,7 +10,7 @@ import (
 	"log-agent-go/writer"
 	"os"
 	"strconv"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hpcloud/tail"
@@ -30,7 +30,7 @@ type (
 		TailObj          *tail.Tail
 		conf             *config.ServerConf
 		etcdClient       *etcd.EtcdClient
-		offset           sync.Map
+		offset           int64
 		consumer         *writer.Writer
 		channel          chan *writeMsg
 		producerRoutines *service.RoutineGroup
@@ -96,7 +96,7 @@ func (t *TailTask) Start() {
 }
 
 func (t *TailTask) setOffset(offset int64) {
-	t.offset.Store("offset", offset)
+	atomic.StoreInt64(&t.offset, offset)
 }
 
 func (t *TailTask) startConsumers() {
@@ -143,11 +143,11 @@ func (t *TailTask) periodMarkOffset() {
 	s := t.conf.MarkOffsetPeriod
 	ticker := time.Tick(time.Duration(s) * time.Second)
 	for range ticker {
-		if offset, ok := t.offset.Load("offset"); ok && offset != int64(-1) {
+		if offset := atomic.LoadInt64(&t.offset); offset != int64(0) && offset != int64(-1) {
 			key := utils.GetTailTaskKey(t.Filepath, t.Topic)
-			t.etcdClient.Put(key, strconv.FormatInt(offset.(int64), 10))
+			t.etcdClient.Put(key, strconv.FormatInt(offset, 10))
 			// 如果当前 offset 等于最新的 offset 则说明这段时间内没有新的文件读取，设置为 -1，表示不用更新
-			if last, _ := t.offset.Load("offset"); last == offset {
+			if last := atomic.LoadInt64(&t.offset); last == offset {
 				t.setOffset(int64(-1))
 			}
 		}
